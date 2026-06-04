@@ -338,7 +338,7 @@ function renderStaffOrOverview(){
     el.querySelectorAll('.sc').forEach(card=>{
       card.addEventListener('click',()=>{
         const id=+card.dataset.id;
-        if(selStaff===id){selStaff=null;}else{selStaff=id;selWeek=1;}
+        selStaff=id;const now2=new Date();if(cy===now2.getFullYear()&&cm===now2.getMonth()){selWeek=Math.ceil(now2.getDate()/7);}else{selWeek=1;}
         renderAll();
         if(selStaff){setTimeout(()=>document.getElementById('detailArea').scrollIntoView({behavior:'smooth',block:'start'}),50);}
       });

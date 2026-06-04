@@ -535,7 +535,8 @@ function openModal(mode, targetId){
 }
 function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
-window.delStaff=async function(id){
+window.delStaff=async function(id){window.editStaff=function(id){openModal('editStaff',id);};
+window.editStore=function(id){openModal('editStore',id);};
   if(!confirm('この担当者を削除しますか？'))return;
   state.staff=state.staff.filter(s=>s.id!==id);if(selStaff===id)selStaff=null;
   await save();showToast('削除しました');renderAll();

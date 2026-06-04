@@ -460,8 +460,8 @@ function renderWeekContent(){
     const rc=r>=80?'#0F6E56':r>=50?'#854F0B':'#A32D2D';
     const dn=dayName(cy,cm,d);
     const dnStyle=dn==='日'?'color:#E24B4A':dn==='土'?'color:#185FA5':'color:#888';
-    return`<tr>
-      <td>${cm+1}/${d}</td>
+    const todayObj=new Date();const isToday=cy===todayObj.getFullYear()&&cm===todayObj.getMonth()&&d===todayObj.getDate();const rowStyle=isToday?'background:#f0faf6;':'';const todayBadge=isToday?'<span style="font-size:9px;background:#0F6E56;color:#fff;border-radius:4px;padding:1px 4px;margin-left:3px">今日</span>':'';return`<tr style="${rowStyle}">
+      <td>${cm+1}/${d}${todayBadge}</td>
       <td style="${dnStyle}">${dn}</td>
       <td><input type="number" inputmode="numeric" min="0" value="${dd.visit}" class="day-inp" data-d="${d}" data-type="visit"></td>
       <td><input type="number" inputmode="numeric" min="0" value="${dd.booking}" class="day-inp" data-d="${d}" data-type="booking"></td>

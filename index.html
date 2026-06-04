@@ -472,7 +472,28 @@ function renderWeekContent(){
 
 function openModal(mode, targetId){
   const ov=document.getElementById('modalOverlay'),box=document.getElementById('modalBox');
-  ov.classList.add('open');
+  ov.classList.add('open');if(mode==='editStaff'){
+    const st=state.staff.find(s=>s.id===targetId);
+    if(!st)return;
+    const opts=state.stores.map(s=>`<option value="${s.id}"${s.id===st.storeId?' selected':''}>${s.name}</option>`).join('');
+    box.innerHTML=`<h3>担当者を編集</h3><div class="fr"><label>名前</label><input type="text" id="mn" value="${st.name}"></div><div class="fr"><label>役職</label><input type="text" id="mr" value="${st.role}"></div><div class="fr"><label>店舗</label><select id="ms">${opts}</select></div><div class="ma"><button class="bc" id="mc">キャンセル</button><button class="bp" id="mok">保存する</button></div>`;
+    setTimeout(()=>document.getElementById('mn').focus(),100);
+    document.getElementById('mok').addEventListener('click',async ()=>{
+      const n=document.getElementById('mn').value.trim();if(!n)return;
+      st.name=n;st.role=document.getElementById('mr').value.trim()||'スタイリスト';
+      st.storeId=+document.getElementById('ms').value;
+      await save();closeModal();showToast(`${n}を更新しました`);renderAll();
+    });
+  } else if(mode==='editStore'){
+    const store=state.stores.find(s=>s.id===targetId);
+    if(!store)return;
+    box.innerHTML=`<h3>店舗名を編集</h3><div class="fr"><label>店舗名</label><input type="text" id="mn" value="${store.name}"></div><div class="ma"><button class="bc" id="mc">キャンセル</button><button class="bp" id="mok">保存する</button></div>`;
+    setTimeout(()=>document.getElementById('mn').focus(),100);
+    document.getElementById('mok').addEventListener('click',async ()=>{
+      const n=document.getElementById('mn').value.trim();if(!n)return;
+      store.name=n;await save();closeModal();showToast(`店舗名を更新しました`);renderAll();
+    });
+  } else
   if(mode==='store'){
     box.innerHTML=`<h3>店舗を追加</h3><div class="fr"><label>店舗名</label><input type="text" id="mn" placeholder="例：池袋店"></div><div class="ma"><button class="bc" id="mc">キャンセル</button><button class="bp" id="mok">追加する</button></div>`;
     setTimeout(()=>document.getElementById('mn').focus(),100);

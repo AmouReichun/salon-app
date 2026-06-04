@@ -470,7 +470,7 @@ function renderWeekContent(){
   }).join('');
 }
 
-function openModal(mode){
+function openModal(mode, targetId){
   const ov=document.getElementById('modalOverlay'),box=document.getElementById('modalBox');
   ov.classList.add('open');
   if(mode==='store'){

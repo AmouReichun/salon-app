@@ -1,6 +1,6 @@
 {
-  "name": "美容室 予約管理",
-  "short_name": "予約管理",
+  "name": "次回予約管理",
+  "short_name": "次回予約管理",
   "description": "担当者別 入客数・次回予約数 日次管理アプリ",
   "start_url": "/salon-app/",
   "scope": "/salon-app/",

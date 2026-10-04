@@ -412,8 +412,20 @@ function renderDetail(){
       </div>`;
 
   const thead=nf
-    ?'<th>日付</th><th>曜</th><th>新規</th><th>リピ</th><th>予新</th><th>予リ</th><th>率</th>'
-    :'<th>日付</th><th>曜</th><th>入客</th><th>予約</th><th>率</th>';
+    ?`<tr>
+        <th rowspan="2" style="vertical-align:middle">日付</th>
+        <th rowspan="2" style="vertical-align:middle">曜</th>
+        <th colspan="2" style="background:#EAF2FF;color:#185FA5;border-bottom:none">入客数</th>
+        <th colspan="2" style="background:#E8F8F0;color:#0F6E56;border-bottom:none">次回予約</th>
+        <th rowspan="2" style="vertical-align:middle">率</th>
+      </tr>
+      <tr>
+        <th style="background:#EAF2FF;color:#185FA5">新規</th>
+        <th style="background:#EAF2FF;color:#185FA5">リピ</th>
+        <th style="background:#E8F8F0;color:#0F6E56">新規</th>
+        <th style="background:#E8F8F0;color:#0F6E56">リピ</th>
+      </tr>`
+    :`<tr><th>日付</th><th>曜</th><th>入客</th><th>予約</th><th>率</th></tr>`;
 
   el.innerHTML=`<div class="detail-panel">
     <div class="dp-hd">
@@ -436,7 +448,7 @@ function renderDetail(){
     </div>
     <div class="wk-metrics" id="wkMetrics"></div>
     <div class="day-table-wrap">
-      <table><thead><tr>${thead}</tr></thead><tbody id="dayTableBody"></tbody></table>
+      <table><thead>${thead}</thead><tbody id="dayTableBody"></tbody></table>
     </div>
     <div class="save-row">
       <button class="btn-del" onclick="editStaff(${st.id})">✏️ 編集</button>
@@ -511,13 +523,15 @@ function renderWeekContent(){
     const rowStyle=isToday?'background:#f0faf6;':'';
     const todayBadge=isToday?'<span style="font-size:9px;background:#0F6E56;color:#fff;border-radius:4px;padding:1px 4px;margin-left:3px">今日</span>':'';
     if(nf){
-      return`<tr style="${rowStyle}">
-        <td>${cm+1}/${d}${todayBadge}</td>
-        <td style="${dnStyle}">${dn}</td>
-        <td><input type="number" inputmode="numeric" min="0" value="${dd.visitNew||0}" class="day-inp" data-d="${d}" data-type="visitNew"></td>
-        <td><input type="number" inputmode="numeric" min="0" value="${dd.visitRepeat||0}" class="day-inp" data-d="${d}" data-type="visitRepeat"></td>
-        <td><input type="number" inputmode="numeric" min="0" value="${dd.bookingNew||0}" class="day-inp" data-d="${d}" data-type="bookingNew"></td>
-        <td><input type="number" inputmode="numeric" min="0" value="${dd.bookingRepeat||0}" class="day-inp" data-d="${d}" data-type="bookingRepeat"></td>
+      const vBg=isToday?'background:#ddeeff':'background:#F0F6FF';
+      const bBg=isToday?'background:#d6f5e8':'background:#EDF9F4';
+      return`<tr>
+        <td style="${rowStyle}">${cm+1}/${d}${todayBadge}</td>
+        <td style="${dnStyle};${rowStyle}">${dn}</td>
+        <td style="${vBg}"><input type="number" inputmode="numeric" min="0" value="${dd.visitNew||0}" class="day-inp" data-d="${d}" data-type="visitNew"></td>
+        <td style="${vBg}"><input type="number" inputmode="numeric" min="0" value="${dd.visitRepeat||0}" class="day-inp" data-d="${d}" data-type="visitRepeat"></td>
+        <td style="${bBg}"><input type="number" inputmode="numeric" min="0" value="${dd.bookingNew||0}" class="day-inp" data-d="${d}" data-type="bookingNew"></td>
+        <td style="${bBg}"><input type="number" inputmode="numeric" min="0" value="${dd.bookingRepeat||0}" class="day-inp" data-d="${d}" data-type="bookingRepeat"></td>
         <td style="color:${rc};font-weight:600">${v>0?r+'%':'—'}</td>
       </tr>`;
     }else{

@@ -233,7 +233,7 @@ function getWeeks(y,m){return Math.ceil(daysInMonth(y,m)/7);}
 function dayName(y,m,d){return DN[new Date(y,m,d).getDay()];}
 
 // 今月以降は新規/リピート分割フォーマットを使う
-function isNewFmt(y,m){const t=new Date();return y>t.getFullYear()||(y===t.getFullYear()&&m>=t.getMonth());}
+function isNewFmt(y,m){return true;}
 // 新旧両フォーマット対応の合計取得
 function sumVisit(dd){return dd.visitNew!==undefined||dd.visitRepeat!==undefined?(dd.visitNew||0)+(dd.visitRepeat||0):(dd.visit||0);}
 function sumBooking(dd){return dd.bookingNew!==undefined||dd.bookingRepeat!==undefined?(dd.bookingNew||0)+(dd.bookingRepeat||0):(dd.booking||0);}

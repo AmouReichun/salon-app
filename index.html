@@ -68,6 +68,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kana','Hiragino Sans
 .ms-card{background:#f5f5f5;border-radius:8px;padding:8px 10px}
 .ms-lbl{font-size:10px;color:#888;margin-bottom:2px}
 .ms-val{font-size:16px;font-weight:700}
+.ms-sub{font-size:10px;color:#aaa;margin-top:2px}
 .chart-wrap{position:relative;width:100%;margin-bottom:12px}
 .legend-row{display:flex;gap:12px;margin-bottom:7px;font-size:11px;color:#666}
 .li{display:flex;align-items:center;gap:4px}
@@ -82,11 +83,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kana','Hiragino Sans
 .wkm-val{font-size:15px;font-weight:700}
 .day-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:10px}
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{font-size:11px;font-weight:600;color:#888;padding:6px 5px;border-bottom:1px solid #e0e0e0;text-align:center;white-space:nowrap}
+th{font-size:11px;font-weight:600;color:#888;padding:6px 4px;border-bottom:1px solid #e0e0e0;text-align:center;white-space:nowrap}
 th:first-child{text-align:left}
-td{padding:6px 5px;border-bottom:0.5px solid #f0f0f0;text-align:center;vertical-align:middle}
+td{padding:5px 4px;border-bottom:0.5px solid #f0f0f0;text-align:center;vertical-align:middle}
 td:first-child{text-align:left;color:#888;font-size:11px;white-space:nowrap}
-td input{width:54px;font-size:13px;padding:4px 6px;text-align:center;border:0.5px solid #d0d0d0;border-radius:6px;background:#fff;color:#1a1a1a;-webkit-appearance:none;appearance:none}
+td input{width:42px;font-size:13px;padding:4px 3px;text-align:center;border:0.5px solid #d0d0d0;border-radius:6px;background:#fff;color:#1a1a1a;-webkit-appearance:none;appearance:none}
 td input:focus{outline:none;border-color:#1D9E75}
 .save-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
 .btn-save{font-size:13px;padding:8px 20px;background:#1D9E75;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;-webkit-appearance:none}
@@ -116,6 +117,8 @@ td input:focus{outline:none;border-color:#1D9E75}
 .ov-meta{font-size:11px;color:#888;margin-top:1px}
 .ov-count{font-size:19px;font-weight:700;text-align:right;flex-shrink:0}
 .ov-count-lbl{font-size:10px;color:#888;text-align:right}
+.type-group-label{font-size:11px;font-weight:600;color:#bbb;letter-spacing:.06em;padding:10px 2px 4px}
+.type-group-label:first-child{padding-top:0}
 </style>
 </head>
 <body>
@@ -171,7 +174,6 @@ window._db = db;
 window._fbRef = ref;
 window._fbSet = set;
 
-// リアルタイム同期
 onValue(ref(db, 'salonData'), (snapshot) => {
   const data = snapshot.val();
   if (data && data.stores && data.staff) {
@@ -198,7 +200,7 @@ const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月'
 const DN=['日','月','火','水','木','金','土'];
 
 const INIT={
-  stores:[{id:1,name:'渋谷店'},{id:2,name:'新宿店'},{id:3,name:'銀座店'}],
+  stores:[{id:1,name:'渋谷店',type:'hair'},{id:2,name:'新宿店',type:'hair'},{id:3,name:'銀座店',type:'eyelash'}],
   staff:[
     {id:1,storeId:1,name:'田中 彩香',role:'チーフ'},
     {id:2,storeId:1,name:'鈴木 健太',role:'スタイリスト'},
@@ -229,23 +231,42 @@ function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
 function weekOf(d){return Math.ceil(d/7);}
 function getWeeks(y,m){return Math.ceil(daysInMonth(y,m)/7);}
 function dayName(y,m,d){return DN[new Date(y,m,d).getDay()];}
+
+// 今月以降は新規/リピート分割フォーマットを使う
+function isNewFmt(y,m){const t=new Date();return y>t.getFullYear()||(y===t.getFullYear()&&m>=t.getMonth());}
+// 新旧両フォーマット対応の合計取得
+function sumVisit(dd){return dd.visitNew!==undefined||dd.visitRepeat!==undefined?(dd.visitNew||0)+(dd.visitRepeat||0):(dd.visit||0);}
+function sumBooking(dd){return dd.bookingNew!==undefined||dd.bookingRepeat!==undefined?(dd.bookingNew||0)+(dd.bookingRepeat||0):(dd.booking||0);}
+
 function getDayData(sid,y,m,d){
   const k=`${y}-${m}-${d}`;
   if(!state.daily[k])state.daily[k]={};
-  if(!state.daily[k][sid])state.daily[k][sid]={visit:0,booking:0};
+  if(!state.daily[k][sid])state.daily[k][sid]=isNewFmt(y,m)
+    ?{visitNew:0,visitRepeat:0,bookingNew:0,bookingRepeat:0}
+    :{visit:0,booking:0};
   return state.daily[k][sid];
 }
 function getMonthTotals(sid,y,m){
-  let v=0,b=0;
-  for(let d=1;d<=daysInMonth(y,m);d++){const dd=getDayData(sid,y,m,d);v+=dd.visit;b+=dd.booking;}
-  return{visit:v,booking:b};
+  let v=0,b=0,vn=0,vr=0,bn=0,br=0;
+  for(let d=1;d<=daysInMonth(y,m);d++){
+    const dd=getDayData(sid,y,m,d);
+    v+=sumVisit(dd);b+=sumBooking(dd);
+    vn+=(dd.visitNew||0);vr+=(dd.visitRepeat||0);
+    bn+=(dd.bookingNew||0);br+=(dd.bookingRepeat||0);
+  }
+  return{visit:v,booking:b,visitNew:vn,visitRepeat:vr,bookingNew:bn,bookingRepeat:br};
 }
 function getWeekTotals(sid,y,m,wk){
-  let v=0,b=0;
+  let v=0,b=0,vn=0,vr=0,bn=0,br=0;
   for(let d=1;d<=daysInMonth(y,m);d++){
-    if(weekOf(d)===wk){const dd=getDayData(sid,y,m,d);v+=dd.visit;b+=dd.booking;}
+    if(weekOf(d)===wk){
+      const dd=getDayData(sid,y,m,d);
+      v+=sumVisit(dd);b+=sumBooking(dd);
+      vn+=(dd.visitNew||0);vr+=(dd.visitRepeat||0);
+      bn+=(dd.bookingNew||0);br+=(dd.bookingRepeat||0);
+    }
   }
-  return{visit:v,booking:b};
+  return{visit:v,booking:b,visitNew:vn,visitRepeat:vr,bookingNew:bn,bookingRepeat:br};
 }
 function rate(v,b){return v>0?Math.round(b/v*100):0;}
 function rb(r){
@@ -254,7 +275,8 @@ function rb(r){
   return`<span class="rb dn">${r}%</span>`;
 }
 function storeColor(sid){return SC[state.stores.findIndex(s=>s.id===sid)%SC.length];}
-function staffColor(idx){const c=AC[idx%AC.length];return c[0];}
+function staffColor(idx){return AC[idx%AC.length][0];}
+function typeIcon(type){return type==='eyelash'?'👁':'✂';}
 
 function renderTabs(){
   const el=document.getElementById('storeTabs');
@@ -292,16 +314,17 @@ function renderStaffOrOverview(){
   const el=document.getElementById('staffOrOverview');
   const sl=visibleStaff();
   if(selStore==='all'){
-    const maxB=Math.max(1,...state.stores.map(s=>state.staff.filter(st=>st.storeId===s.id).reduce((sum,st)=>sum+getMonthTotals(st.id,cy,cm).booking,0)));
     document.getElementById('staffSectionLabel').textContent='店舗別サマリー';
-    el.innerHTML='<div class="ov-grid">'+state.stores.map(s=>{
+    const maxB=Math.max(1,...state.stores.map(s=>state.staff.filter(st=>st.storeId===s.id).reduce((sum,st)=>sum+getMonthTotals(st.id,cy,cm).booking,0)));
+
+    function makeStoreCard(s){
       const sl2=state.staff.filter(st=>st.storeId===s.id);
       const tv=sl2.reduce((sum,st)=>sum+getMonthTotals(st.id,cy,cm).visit,0);
       const tb=sl2.reduce((sum,st)=>sum+getMonthTotals(st.id,cy,cm).booking,0);
       const r=rate(tv,tb);
       const col=storeColor(s.id);
       return`<div class="ov-row" data-sid="${s.id}">
-        <div class="ov-icon" style="background:${col}18;color:${col}">🏪</div>
+        <div class="ov-icon" style="background:${col}18;color:${col}">${typeIcon(s.type)}</div>
         <div class="ov-mid">
           <div class="ov-name">${s.name} ${rb(r)}</div>
           <div class="ov-meta">${sl2.length}名 · 入客 ${tv}名</div>
@@ -309,14 +332,28 @@ function renderStaffOrOverview(){
         </div>
         <div><div class="ov-count" style="color:${col}">${tb}</div><div class="ov-count-lbl">件</div></div>
       </div>`;
-    }).join('')+'</div>';
+    }
+
+    const hairStores=state.stores.filter(s=>!s.type||s.type==='hair');
+    const eyelashStores=state.stores.filter(s=>s.type==='eyelash');
+    let html='<div class="ov-grid">';
+    if(hairStores.length>0){
+      if(eyelashStores.length>0)html+=`<div class="type-group-label">美容室</div>`;
+      html+=hairStores.map(makeStoreCard).join('');
+    }
+    if(eyelashStores.length>0){
+      html+=`<div class="type-group-label">アイラッシュ</div>`;
+      html+=eyelashStores.map(makeStoreCard).join('');
+    }
+    html+='</div>';
+    el.innerHTML=html;
     el.querySelectorAll('.ov-row').forEach(r=>r.addEventListener('click',()=>{
       selStore=+r.dataset.sid;selStaff=null;renderAll();
     }));
   } else {
     document.getElementById('staffSectionLabel').textContent='担当者一覧';
     const maxB=Math.max(1,...sl.map(st=>getMonthTotals(st.id,cy,cm).booking));
-    el.innerHTML='<div class="staff-cards">'+sl.map((st,i)=>{
+    el.innerHTML='<div class="staff-cards">'+sl.map((st)=>{
       const col=staffColor(state.staff.indexOf(st));
       const t=getMonthTotals(st.id,cy,cm);
       const r=rate(t.visit,t.booking);
@@ -356,10 +393,27 @@ function renderDetail(){
   const mt=getMonthTotals(st.id,cy,cm);
   const mr=rate(mt.visit,mt.booking);
   const rc=mr>=80?'#0F6E56':mr>=50?'#854F0B':'#A32D2D';
+  const nf=isNewFmt(cy,cm);
   if(chartInst){chartInst.destroy();chartInst=null;}
   const wkV=Array.from({length:weeks},(_,i)=>getWeekTotals(st.id,cy,cm,i+1).visit);
   const wkB=Array.from({length:weeks},(_,i)=>getWeekTotals(st.id,cy,cm,i+1).booking);
   const wkLabels=Array.from({length:weeks},(_,i)=>`第${i+1}週`);
+
+  const msum=nf
+    ?`<div class="month-summary">
+        <div class="ms-card"><div class="ms-lbl">入客数</div><div class="ms-val">${mt.visit}<span style="font-size:10px;color:#888">名</span></div><div class="ms-sub">新規 ${mt.visitNew} / リピ ${mt.visitRepeat}</div></div>
+        <div class="ms-card"><div class="ms-lbl">次回予約</div><div class="ms-val">${mt.booking}<span style="font-size:10px;color:#888">件</span></div><div class="ms-sub">新規 ${mt.bookingNew} / リピ ${mt.bookingRepeat}</div></div>
+        <div class="ms-card"><div class="ms-lbl">予約率</div><div class="ms-val" style="color:${rc}">${mr}%</div></div>
+      </div>`
+    :`<div class="month-summary">
+        <div class="ms-card"><div class="ms-lbl">入客数</div><div class="ms-val">${mt.visit}<span style="font-size:10px;color:#888">名</span></div></div>
+        <div class="ms-card"><div class="ms-lbl">次回予約</div><div class="ms-val">${mt.booking}<span style="font-size:10px;color:#888">件</span></div></div>
+        <div class="ms-card"><div class="ms-lbl">予約率</div><div class="ms-val" style="color:${rc}">${mr}%</div></div>
+      </div>`;
+
+  const thead=nf
+    ?'<th>日付</th><th>曜</th><th>新規</th><th>リピ</th><th>予新</th><th>予リ</th><th>率</th>'
+    :'<th>日付</th><th>曜</th><th>入客</th><th>予約</th><th>率</th>';
 
   el.innerHTML=`<div class="detail-panel">
     <div class="dp-hd">
@@ -370,11 +424,7 @@ function renderDetail(){
       <button class="dp-close" id="dpClose">✕</button>
     </div>
     <div class="sec-lbl">月間合計（${MN[cm]}）</div>
-    <div class="month-summary" style="margin-bottom:10px">
-      <div class="ms-card"><div class="ms-lbl">入客数</div><div class="ms-val">${mt.visit}<span style="font-size:10px;color:#888">名</span></div></div>
-      <div class="ms-card"><div class="ms-lbl">次回予約</div><div class="ms-val">${mt.booking}<span style="font-size:10px;color:#888">件</span></div></div>
-      <div class="ms-card"><div class="ms-lbl">予約率</div><div class="ms-val" style="color:${rc}">${mr}%</div></div>
-    </div>
+    ${msum}
     <div class="legend-row">
       <span class="li"><span class="ld" style="background:${col}"></span>入客数</span>
       <span class="li"><span class="ld" style="background:${col}55"></span>次回予約数</span>
@@ -386,13 +436,10 @@ function renderDetail(){
     </div>
     <div class="wk-metrics" id="wkMetrics"></div>
     <div class="day-table-wrap">
-      <table>
-        <thead><tr><th>日付</th><th>曜</th><th>入客</th><th>予約</th><th>率</th></tr></thead>
-        <tbody id="dayTableBody"></tbody>
-      </table>
+      <table><thead><tr>${thead}</tr></thead><tbody id="dayTableBody"></tbody></table>
     </div>
     <div class="save-row">
-    <button class="btn-del" onclick="editStaff(${st.id})">✏️ 編集</button>
+      <button class="btn-del" onclick="editStaff(${st.id})">✏️ 編集</button>
       <button class="btn-del" onclick="delStaff(${st.id})">🗑 削除</button>
       <button class="btn-save" id="saveDay">保存する</button>
     </div>
@@ -423,21 +470,12 @@ function renderDetail(){
     if(!canvas||!window.Chart)return;
     chartInst=new Chart(canvas,{
       type:'bar',
-      data:{
-        labels:wkLabels,
-        datasets:[
-          {label:'入客数',data:wkV,backgroundColor:col+'aa',borderColor:col,borderWidth:1},
-          {label:'次回予約数',data:wkB,backgroundColor:col+'44',borderColor:col,borderWidth:1}
-        ]
-      },
-      options:{
-        responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false}},
-        scales:{
-          x:{ticks:{color:'#888',font:{size:10}},grid:{display:false}},
-          y:{ticks:{color:'#888',font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}}
-        }
-      }
+      data:{labels:wkLabels,datasets:[
+        {label:'入客数',data:wkV,backgroundColor:col+'aa',borderColor:col,borderWidth:1},
+        {label:'次回予約数',data:wkB,backgroundColor:col+'44',borderColor:col,borderWidth:1}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{ticks:{color:'#888',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#888',font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}}}}
     });
   },60);
 }
@@ -449,31 +487,55 @@ function renderWeekContent(){
   const wt=getWeekTotals(selStaff,cy,cm,selWeek);
   const wr=rate(wt.visit,wt.booking);
   const wrc=wr>=80?'#0F6E56':wr>=50?'#854F0B':'#A32D2D';
+  const nf=isNewFmt(cy,cm);
   const wkm=document.getElementById('wkMetrics');
-  if(wkm)wkm.innerHTML=`
-    <div class="wkm"><div class="wkm-lbl">週間入客</div><div class="wkm-val">${wt.visit}<span style="font-size:10px;color:#888">名</span></div></div>
-    <div class="wkm"><div class="wkm-lbl">週間予約</div><div class="wkm-val">${wt.booking}<span style="font-size:10px;color:#888">件</span></div></div>
-    <div class="wkm"><div class="wkm-lbl">週予約率</div><div class="wkm-val" style="color:${wrc}">${wr}%</div></div>`;
+  if(wkm)wkm.innerHTML=nf
+    ?`<div class="wkm"><div class="wkm-lbl">週間入客</div><div class="wkm-val">${wt.visit}<span style="font-size:10px;color:#888">名</span></div><div style="font-size:10px;color:#aaa;margin-top:2px">新規 ${wt.visitNew} / リピ ${wt.visitRepeat}</div></div>
+       <div class="wkm"><div class="wkm-lbl">週間予約</div><div class="wkm-val">${wt.booking}<span style="font-size:10px;color:#888">件</span></div><div style="font-size:10px;color:#aaa;margin-top:2px">新規 ${wt.bookingNew} / リピ ${wt.bookingRepeat}</div></div>
+       <div class="wkm"><div class="wkm-lbl">週予約率</div><div class="wkm-val" style="color:${wrc}">${wr}%</div></div>`
+    :`<div class="wkm"><div class="wkm-lbl">週間入客</div><div class="wkm-val">${wt.visit}<span style="font-size:10px;color:#888">名</span></div></div>
+       <div class="wkm"><div class="wkm-lbl">週間予約</div><div class="wkm-val">${wt.booking}<span style="font-size:10px;color:#888">件</span></div></div>
+       <div class="wkm"><div class="wkm-lbl">週予約率</div><div class="wkm-val" style="color:${wrc}">${wr}%</div></div>`;
+
   const tbody=document.getElementById('dayTableBody');
-  if(tbody)tbody.innerHTML=daysOfWeek.map(d=>{
+  if(!tbody)return;
+  const todayObj=new Date();
+  tbody.innerHTML=daysOfWeek.map(d=>{
     const dd=getDayData(selStaff,cy,cm,d);
-    const r=rate(dd.visit,dd.booking);
+    const v=sumVisit(dd),b=sumBooking(dd);
+    const r=rate(v,b);
     const rc=r>=80?'#0F6E56':r>=50?'#854F0B':'#A32D2D';
     const dn=dayName(cy,cm,d);
     const dnStyle=dn==='日'?'color:#E24B4A':dn==='土'?'color:#185FA5':'color:#888';
-    const todayObj=new Date();const isToday=cy===todayObj.getFullYear()&&cm===todayObj.getMonth()&&d===todayObj.getDate();const rowStyle=isToday?'background:#f0faf6;':'';const todayBadge=isToday?'<span style="font-size:9px;background:#0F6E56;color:#fff;border-radius:4px;padding:1px 4px;margin-left:3px">今日</span>':'';return`<tr style="${rowStyle}">
-      <td>${cm+1}/${d}${todayBadge}</td>
-      <td style="${dnStyle}">${dn}</td>
-      <td><input type="number" inputmode="numeric" min="0" value="${dd.visit}" class="day-inp" data-d="${d}" data-type="visit"></td>
-      <td><input type="number" inputmode="numeric" min="0" value="${dd.booking}" class="day-inp" data-d="${d}" data-type="booking"></td>
-      <td style="color:${rc};font-weight:600">${dd.visit>0?r+'%':'—'}</td>
-    </tr>`;
+    const isToday=cy===todayObj.getFullYear()&&cm===todayObj.getMonth()&&d===todayObj.getDate();
+    const rowStyle=isToday?'background:#f0faf6;':'';
+    const todayBadge=isToday?'<span style="font-size:9px;background:#0F6E56;color:#fff;border-radius:4px;padding:1px 4px;margin-left:3px">今日</span>':'';
+    if(nf){
+      return`<tr style="${rowStyle}">
+        <td>${cm+1}/${d}${todayBadge}</td>
+        <td style="${dnStyle}">${dn}</td>
+        <td><input type="number" inputmode="numeric" min="0" value="${dd.visitNew||0}" class="day-inp" data-d="${d}" data-type="visitNew"></td>
+        <td><input type="number" inputmode="numeric" min="0" value="${dd.visitRepeat||0}" class="day-inp" data-d="${d}" data-type="visitRepeat"></td>
+        <td><input type="number" inputmode="numeric" min="0" value="${dd.bookingNew||0}" class="day-inp" data-d="${d}" data-type="bookingNew"></td>
+        <td><input type="number" inputmode="numeric" min="0" value="${dd.bookingRepeat||0}" class="day-inp" data-d="${d}" data-type="bookingRepeat"></td>
+        <td style="color:${rc};font-weight:600">${v>0?r+'%':'—'}</td>
+      </tr>`;
+    }else{
+      return`<tr style="${rowStyle}">
+        <td>${cm+1}/${d}${todayBadge}</td>
+        <td style="${dnStyle}">${dn}</td>
+        <td><input type="number" inputmode="numeric" min="0" value="${dd.visit||0}" class="day-inp" data-d="${d}" data-type="visit"></td>
+        <td><input type="number" inputmode="numeric" min="0" value="${dd.booking||0}" class="day-inp" data-d="${d}" data-type="booking"></td>
+        <td style="color:${rc};font-weight:600">${v>0?r+'%':'—'}</td>
+      </tr>`;
+    }
   }).join('');
 }
 
-function openModal(mode, targetId){
+function openModal(mode,targetId){
   const ov=document.getElementById('modalOverlay'),box=document.getElementById('modalBox');
-  ov.classList.add('open');if(mode==='editStaff'){
+  ov.classList.add('open');
+  if(mode==='editStaff'){
     const st=state.staff.find(s=>s.id===targetId);
     if(!st)return;
     const opts=state.stores.map(s=>`<option value="${s.id}"${s.id===st.storeId?' selected':''}>${s.name}</option>`).join('');
@@ -485,24 +547,26 @@ function openModal(mode, targetId){
       st.storeId=+document.getElementById('ms').value;
       await save();closeModal();showToast(`${n}を更新しました`);renderAll();
     });
-  } else if(mode==='editStore'){
+  }else if(mode==='editStore'){
     const store=state.stores.find(s=>s.id===targetId);
     if(!store)return;
-    box.innerHTML=`<h3>店舗名を編集</h3><div class="fr"><label>店舗名</label><input type="text" id="mn" value="${store.name}"></div><div class="ma"><button class="bc" id="mc">キャンセル</button><button class="bp" id="mok">保存する</button></div>`;
+    const typeOpts=`<option value="hair"${(!store.type||store.type==='hair')?' selected':''}>美容室</option><option value="eyelash"${store.type==='eyelash'?' selected':''}>アイラッシュ</option>`;
+    box.innerHTML=`<h3>店舗を編集</h3><div class="fr"><label>店舗名</label><input type="text" id="mn" value="${store.name}"></div><div class="fr"><label>業態</label><select id="mt">${typeOpts}</select></div><div class="ma"><button class="bc" id="mc">キャンセル</button><button class="bp" id="mok">保存する</button></div>`;
     setTimeout(()=>document.getElementById('mn').focus(),100);
     document.getElementById('mok').addEventListener('click',async ()=>{
       const n=document.getElementById('mn').value.trim();if(!n)return;
-      store.name=n;await save();closeModal();showToast(`店舗名を更新しました`);renderAll();
+      store.name=n;store.type=document.getElementById('mt').value;
+      await save();closeModal();showToast('店舗を更新しました');renderAll();
     });
-  } else
-  if(mode==='store'){
-    box.innerHTML=`<h3>店舗を追加</h3><div class="fr"><label>店舗名</label><input type="text" id="mn" placeholder="例：池袋店"></div><div class="ma"><button class="bc" id="mc">キャンセル</button><button class="bp" id="mok">追加する</button></div>`;
+  }else if(mode==='store'){
+    box.innerHTML=`<h3>店舗を追加</h3><div class="fr"><label>店舗名</label><input type="text" id="mn" placeholder="例：池袋店"></div><div class="fr"><label>業態</label><select id="mt"><option value="hair">美容室</option><option value="eyelash">アイラッシュ</option></select></div><div class="ma"><button class="bc" id="mc">キャンセル</button><button class="bp" id="mok">追加する</button></div>`;
     setTimeout(()=>document.getElementById('mn').focus(),100);
     document.getElementById('mok').addEventListener('click',async ()=>{
       const n=document.getElementById('mn').value.trim();if(!n)return;
-      state.stores.push({id:Date.now(),name:n});await save();closeModal();showToast(`${n}を追加しました`);renderAll();
+      state.stores.push({id:Date.now(),name:n,type:document.getElementById('mt').value});
+      await save();closeModal();showToast(`${n}を追加しました`);renderAll();
     });
-  } else if(mode==='delStore'){
+  }else if(mode==='delStore'){
     const store=state.stores.find(s=>s.id===selStore);
     const staffCount=state.staff.filter(s=>s.storeId===selStore).length;
     box.innerHTML=`<h3 style="color:#A32D2D">店舗を削除</h3>
@@ -515,7 +579,7 @@ function openModal(mode, targetId){
       selStore='all';selStaff=null;
       await save();closeModal();showToast(`${store.name}を削除しました`);renderAll();
     });
-  } else {
+  }else{
     const opts=state.stores.map(s=>`<option value="${s.id}"${(selStore!=='all'&&selStore===s.id)?' selected':''}>${s.name}</option>`).join('');
     box.innerHTML=`<h3>担当者を追加</h3>
       <div class="fr"><label>名前</label><input type="text" id="mn" placeholder="例：田中 花子"></div>
@@ -534,10 +598,13 @@ function openModal(mode, targetId){
   document.getElementById('mc').addEventListener('click',closeModal);
   ov.addEventListener('click',e=>{if(e.target===ov)closeModal();});
 }
+
 function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
-window.delStaff=async function(id){window.editStaff=function(id){openModal('editStaff',id);};
+
+window.editStaff=function(id){openModal('editStaff',id);};
 window.editStore=function(id){openModal('editStore',id);};
+window.delStaff=async function(id){
   if(!confirm('この担当者を削除しますか？'))return;
   state.staff=state.staff.filter(s=>s.id!==id);if(selStaff===id)selStaff=null;
   await save();showToast('削除しました');renderAll();
